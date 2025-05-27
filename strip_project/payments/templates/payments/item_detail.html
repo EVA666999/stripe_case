@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ item.name }}</title>
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+        body { font-family: Arial; max-width: 800px; margin: 20px auto; padding: 0 20px; }
+        .item { border: 1px solid #ddd; padding: 20px; border-radius: 8px; }
+        button { background: #6772e5; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; }
+        .error { color: red; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="item">
+        <h1>{{ item.name }}</h1>
+        <p>Price: ${{ item.price }}</p>
+        <button onclick="buyItem({{ item.id }})">Buy Now</button>
+        <div id="error" class="error"></div>
+    </div>
+
+    <script>
+        const stripe = Stripe('{{ stripe_public_key }}');
+
+        async function buyItem(itemId) {
+            try {
+                const response = await fetch(`/api/item/${itemId}/`, {
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const data = await response.json();
+                if (data.url) {
+                    window.location.href = data.url;
+                } else {
+                    throw new Error('No URL received');
+                }
+            } catch (error) {
+                document.getElementById('error').textContent = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html> 
