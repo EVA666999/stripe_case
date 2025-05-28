@@ -101,9 +101,6 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Stripe settings
-import os
-
-# Stripe settings
 STRIPE_PUBLIC_KEY = os.getenv('STRIPE_PUBLIC_KEY')
 STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
 
@@ -116,7 +113,7 @@ STRIPE_KEYS = {
         'public': STRIPE_PUBLIC_KEY,
         'secret': STRIPE_SECRET_KEY,
     }
-} 
+}
 # REST Framework settings
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [

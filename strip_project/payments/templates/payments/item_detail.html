@@ -13,7 +13,7 @@
 <body>
     <div class="item">
         <h1>{{ item.name }}</h1>
-        <p>Price: ${{ item.price }}</p>
+        <p>Price: {% if item.currency == 'rub' %}₽{% elif item.currency == 'usd' %}${% endif %}{{ item.price }}</p>
         <button onclick="buyItem({{ item.id }})">Buy Now</button>
         <div id="error" class="error"></div>
     </div>

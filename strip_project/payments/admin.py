@@ -3,9 +3,9 @@ from .models import Item, Order, OrderItem, Discount, Tax
 
 @admin.register(Item)
 class ItemAdmin(admin.ModelAdmin):
-    list_display = ('name', 'price', 'description')
+    list_display = ('name', 'price', 'currency', 'description')
     search_fields = ('name', 'description')
-    list_filter = ('price',)
+    list_filter = ('price', 'currency')
 
 @admin.register(Discount)
 class DiscountAdmin(admin.ModelAdmin):
