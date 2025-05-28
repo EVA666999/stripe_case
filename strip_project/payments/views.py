@@ -6,11 +6,7 @@ import stripe
 from .models import Item, Order, Discount, Tax, OrderItem
 from .serializers import OrderCreateSerializer, DiscountSerializer, TaxSerializer
 import logging
-from typing import cast, Dict, Any, List, Optional, Tuple
-from decimal import Decimal
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
-from rest_framework.decorators import api_view
+from typing import Dict, Any, List
 from django.http import JsonResponse
 import os
 from dotenv import load_dotenv
@@ -288,3 +284,7 @@ class PaymentIntentCreateView(APIView):
         except Exception as e:
             logger.error(f"Stripe error: {str(e)}")
             return Response({'error': 'Ошибка при создании PaymentIntent'}, status=500)
+
+def home(request):
+    """Главная страница с доступными эндпоинтами"""
+    return render(request, 'payments/home.html')

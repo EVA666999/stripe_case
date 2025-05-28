@@ -23,20 +23,23 @@
 
         async function buyItem(itemId) {
             try {
-                const response = await fetch(`/api/item/${itemId}/`, {
+                fetch(window.location.pathname, {
+                    method: 'GET',
                     headers: {
-                        'Accept': 'application/json'
+                        'x-requested-with': 'XMLHttpRequest'
                     }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.url) {
+                        window.location.href = data.url;
+                    } else {
+                        alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+                    }
+                })
+                .catch(error => {
+                    alert('Ошибка сети: ' + error);
                 });
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                const data = await response.json();
-                if (data.url) {
-                    window.location.href = data.url;
-                } else {
-                    throw new Error('No URL received');
-                }
             } catch (error) {
                 document.getElementById('error').textContent = 'Error: ' + error.message;
             }
