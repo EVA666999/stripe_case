@@ -114,33 +114,6 @@ POST /api/payment-intent/
 }
 ```
 
-- Используйте `client_secret` на фронте через Stripe.js/Elements для отображения формы оплаты и подтверждения платежа.
-- Все расчёты (скидки, налоги) применяются автоматически.
-
----
-
-## Пример интеграции Stripe.js/Elements (фронт)
-
-1. Получите `client_secret` через POST /api/payment-intent/
-2. Используйте Stripe.js для отображения формы оплаты:
-
-```js
-const stripe = Stripe('YOUR_PUBLIC_KEY');
-const elements = stripe.elements();
-const card = elements.create('card');
-card.mount('#card-element');
-
-// Подтверждение платежа
-const {error, paymentIntent} = await stripe.confirmCardPayment(clientSecret, {
-  payment_method: {
-    card: card,
-    billing_details: {name: 'Имя'}
-  }
-});
-```
-
----
-
 ## Установка и запуск
 
 1. Клонируйте репозиторий
