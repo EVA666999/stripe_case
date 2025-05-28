@@ -48,29 +48,32 @@ def handle_stripe_error(error: Exception, message: str) -> None:
 def item_detail(request, id):
     """Представление для детальной страницы товара"""
     item = get_object_or_404(Item, id=id)
+    logger.info(f"Просмотр товара: {item.name}")
     
-    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.headers.get('accept') == 'application/json':
-        return handle_ajax_request(request, item)
+    # Проверяем, является ли запрос AJAX или JSON
+    is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest'
+    is_json = request.headers.get('accept') == 'application/json'
+    
+    if is_ajax or is_json:
+        try:
+            order = create_order(item)
+            session = StripeService.create_checkout_session(
+                order=order,
+                success_url=request.build_absolute_uri(f'/orders/{order.pk}/success/'),
+                cancel_url=request.build_absolute_uri(f'/orders/{order.pk}/cancel/')
+            )
+            order.stripe_session_id = session.id
+            order.save()
+            logger.info(f"Создан заказ: {order.pk}")
+            return JsonResponse({'url': session.url})
+        except Exception as e:
+            logger.error(f"Ошибка при создании заказа: {str(e)}")
+            return JsonResponse({'error': str(e)}, status=400)
         
     return render(request, 'payments/item_detail.html', {
         'item': item,
         'stripe_public_key': STRIPE_PUBLIC_KEY
     })
-
-def handle_ajax_request(request, item: Item) -> JsonResponse:
-    """Обработка AJAX запроса для создания заказа"""
-    try:
-        order = create_order(item)
-        session = StripeService.create_checkout_session(
-            order=order,
-            success_url=request.build_absolute_uri(f'/orders/{order.pk}/success/'),
-            cancel_url=request.build_absolute_uri(f'/orders/{order.pk}/cancel/')
-        )
-        order.stripe_session_id = session.id
-        order.save()
-        return JsonResponse({'url': session.url})
-    except Exception as e:
-        handle_stripe_error(e, "Ошибка при создании заказа")
 
 def create_order(item: Item) -> Order:
     """Создает новый заказ с одним товаром"""
@@ -200,30 +203,22 @@ class OrderCreateView(APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             
-        try:
-            order = cast(Order, serializer.save())
-            session = StripeService.create_checkout_session(
-                order=order,
-                success_url=request.build_absolute_uri(f'/orders/{order.pk}/success/'),
-                cancel_url=request.build_absolute_uri(f'/orders/{order.pk}/cancel/')
-            )
-            
-            order.stripe_session_id = session.id
-            order.save()
-            
-            return Response({
-                'order_id': order.pk,
-                'session_id': session.id,
-                'checkout_url': session.url
-            })
-        except ValueError as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            logger.error(f"Stripe error: {str(e)}")
-            return Response(
-                {'error': 'Ошибка при создании платежной сессии'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        order = serializer.save()
+        session = StripeService.create_checkout_session(
+            order=order,
+            success_url=request.build_absolute_uri(f'/orders/{order.pk}/success/'),
+            cancel_url=request.build_absolute_uri(f'/orders/{order.pk}/cancel/')
+        )
+        
+        order.stripe_session_id = session.id
+        order.save()
+        logger.info(f"Создан заказ через API: {order.pk}")
+        
+        return Response({
+            'order_id': order.pk,
+            'session_id': session.id,
+            'checkout_url': session.url
+        })
 
 class OrderDetailView(APIView):
     """Представление для получения деталей заказа"""
@@ -241,17 +236,15 @@ class OrderSuccessView(APIView):
         if not order.stripe_session_id:
             return Response({'status': 'error', 'message': 'Сессия не найдена'})
             
-        try:
-            currency = order.order_items.first().item.currency
-            stripe_client = StripeService.get_stripe_client(currency)
-            session = stripe_client.checkout.Session.retrieve(order.stripe_session_id)
-            
-            if session.payment_status == 'paid':
-                order.status = 'paid'
-                order.save()
-                return Response({'status': 'success', 'message': 'Заказ успешно оплачен'})
-        except Exception as e:
-            logger.error(f"Stripe error: {str(e)}")
+        currency = order.order_items.first().item.currency
+        stripe_client = StripeService.get_stripe_client(currency)
+        session = stripe_client.checkout.Session.retrieve(order.stripe_session_id)
+        
+        if session.payment_status == 'paid':
+            order.status = 'paid'
+            order.save()
+            logger.info(f"Заказ оплачен: {order.pk}")
+            return Response({'status': 'success', 'message': 'Заказ успешно оплачен'})
             
         return Response({'status': 'error', 'message': 'Ошибка при проверке статуса оплаты'})
 
@@ -262,6 +255,7 @@ class OrderCancelView(APIView):
         order = get_object_or_404(Order, id=order_id)
         order.status = 'cancelled'
         order.save()
+        logger.info(f"Заказ отменен: {order.pk}")
         return Response({'status': 'cancelled', 'message': 'Заказ отменен'})
 
 class PaymentIntentCreateView(APIView):

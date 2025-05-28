@@ -14,11 +14,14 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 
-# Загрузка переменных окружения из .env файла
-load_dotenv()
+STRIPE_PUBLIC_KEY = os.getenv('STRIPE_PUBLIC_KEY')
+STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
+print("Stripe Key Loaded:", os.getenv("STRIPE_SECRET_KEY"))
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+
+# Загрузка переменных окружения из .env файла
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(os.path.join(BASE_DIR, ".env")) 
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-fnw*w^z#x1_%&yg&3btj_07wi=0azhc_l_3@-4^662cm)0v^9x'
@@ -101,8 +104,6 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Stripe settings
-STRIPE_PUBLIC_KEY = os.getenv('STRIPE_PUBLIC_KEY')
-STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
 
 STRIPE_KEYS = {
     'rub': {
